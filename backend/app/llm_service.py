@@ -10,8 +10,23 @@ settings = get_settings()
 
 class LLMService:
     def __init__(self):
-        self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
-        self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY) if settings.ANTHROPIC_API_KEY else None
+        # Only initialize clients if API keys are provided and not empty
+        self.openai_client = None
+        self.anthropic_client = None
+        
+        if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip():
+            try:
+                self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY.strip())
+            except Exception as e:
+                print(f"Warning: Failed to initialize OpenAI client: {e}")
+                self.openai_client = None
+        
+        if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY.strip():
+            try:
+                self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY.strip())
+            except Exception as e:
+                print(f"Warning: Failed to initialize Anthropic client: {e}")
+                self.anthropic_client = None
     
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
         """Count tokens in text using tiktoken."""
