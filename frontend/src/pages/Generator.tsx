@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Trash2, Download, Loader } from 'lucide-react'
+import { Plus, Trash2, Loader } from 'lucide-react'
 import api from '../api/axios'
 import RichTextEditor from '../components/RichTextEditor'
 import './Generator.css'
