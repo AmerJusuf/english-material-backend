@@ -32,24 +32,34 @@ class LLMService:
         self.anthropic_client = None
         
         # Check OpenAI API key
-        openai_key = getattr(settings, 'OPENAI_API_KEY', '').strip() if hasattr(settings, 'OPENAI_API_KEY') else ''
-        if openai_key and len(openai_key) > 0 and not openai_key.startswith('your-'):
+        openai_key = settings.OPENAI_API_KEY.strip() if settings.OPENAI_API_KEY else ''
+        # Remove quotes if present (common mistake in env vars)
+        openai_key = openai_key.strip('"').strip("'")
+        
+        if openai_key and len(openai_key) > 10:  # Valid API keys are longer than 10 chars
             try:
                 with no_proxy_env():
                     self.openai_client = OpenAI(api_key=openai_key)
             except Exception as e:
-                # Silently skip if initialization fails - user might not have API key set
+                print(f"Warning: Failed to initialize OpenAI client: {e}")
                 self.openai_client = None
+        else:
+            print("Info: OpenAI API key not set or invalid")
         
         # Check Anthropic API key
-        anthropic_key = getattr(settings, 'ANTHROPIC_API_KEY', '').strip() if hasattr(settings, 'ANTHROPIC_API_KEY') else ''
-        if anthropic_key and len(anthropic_key) > 0 and not anthropic_key.startswith('your-'):
+        anthropic_key = settings.ANTHROPIC_API_KEY.strip() if settings.ANTHROPIC_API_KEY else ''
+        # Remove quotes if present
+        anthropic_key = anthropic_key.strip('"').strip("'")
+        
+        if anthropic_key and len(anthropic_key) > 10:
             try:
                 with no_proxy_env():
                     self.anthropic_client = Anthropic(api_key=anthropic_key)
             except Exception as e:
-                # Silently skip if initialization fails - user might not have API key set
+                print(f"Warning: Failed to initialize Anthropic client: {e}")
                 self.anthropic_client = None
+        else:
+            print("Info: Anthropic API key not set or invalid")
     
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
         """Count tokens in text using tiktoken."""
@@ -120,7 +130,10 @@ Make it suitable for both classroom and self-study use."""
     def _generate_with_openai(self, prompt: str, model: str) -> Tuple[str, int, int]:
         """Generate content using OpenAI API."""
         if not self.openai_client:
-            raise ValueError("OpenAI API key not configured")
+            raise ValueError(
+                "OpenAI API key not configured. "
+                "Please set OPENAI_API_KEY environment variable in Render dashboard."
+            )
         
         response = self.openai_client.chat.completions.create(
             model=model,
@@ -141,7 +154,10 @@ Make it suitable for both classroom and self-study use."""
     def _generate_with_claude(self, prompt: str, model: str) -> Tuple[str, int, int]:
         """Generate content using Anthropic Claude API."""
         if not self.anthropic_client:
-            raise ValueError("Anthropic API key not configured")
+            raise ValueError(
+                "Anthropic API key not configured. "
+                "Please set ANTHROPIC_API_KEY environment variable in Render dashboard."
+            )
         
         message = self.anthropic_client.messages.create(
             model=model,
