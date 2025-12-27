@@ -1,11 +1,28 @@
 import json
+import os
 from typing import Dict, List, Any, Tuple
+from contextlib import contextmanager
 import tiktoken
 from openai import OpenAI
 from anthropic import Anthropic
 from app.config import get_settings
 
 settings = get_settings()
+
+
+@contextmanager
+def no_proxy_env():
+    """Temporarily remove proxy environment variables."""
+    proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+    saved = {}
+    for var in proxy_vars:
+        if var in os.environ:
+            saved[var] = os.environ.pop(var)
+    try:
+        yield
+    finally:
+        for var, value in saved.items():
+            os.environ[var] = value
 
 
 class LLMService:
@@ -16,14 +33,16 @@ class LLMService:
         
         if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip():
             try:
-                self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY.strip())
+                with no_proxy_env():
+                    self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY.strip())
             except Exception as e:
                 print(f"Warning: Failed to initialize OpenAI client: {e}")
                 self.openai_client = None
         
         if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY.strip():
             try:
-                self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY.strip())
+                with no_proxy_env():
+                    self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY.strip())
             except Exception as e:
                 print(f"Warning: Failed to initialize Anthropic client: {e}")
                 self.anthropic_client = None
