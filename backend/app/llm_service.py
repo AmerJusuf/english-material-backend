@@ -3,9 +3,15 @@ import os
 from typing import Dict, List, Any, Tuple
 from contextlib import contextmanager
 import tiktoken
+
+# Remove proxy environment variables BEFORE importing OpenAI/Anthropic
+# These libraries may read proxy vars during import/initialization
+proxy_vars_to_remove = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+for var in proxy_vars_to_remove:
+    os.environ.pop(var, None)
+
 from openai import OpenAI
 from anthropic import Anthropic
-import httpx
 from app.config import get_settings
 
 settings = get_settings()
@@ -45,23 +51,27 @@ class LLMService:
         
         if openai_key and len(openai_key) > 10:  # Valid API keys are longer than 10 chars
             try:
-                # Remove proxy vars permanently for OpenAI client
+                # Remove proxy vars before initializing OpenAI client
                 proxy_vars_to_remove = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
                 removed_proxies = {}
                 for var in proxy_vars_to_remove:
                     if var in os.environ:
                         removed_proxies[var] = os.environ.pop(var)
+                        print(f"Debug: Removed proxy var {var}")
                 
-                # Create httpx client without proxies
-                http_client = httpx.Client(proxies=None, timeout=60.0)
+                # Double-check no proxy vars remain
+                remaining_proxies = [var for var in proxy_vars_to_remove if var in os.environ]
+                if remaining_proxies:
+                    print(f"Warning: Proxy vars still present: {remaining_proxies}")
                 
-                self.openai_client = OpenAI(
-                    api_key=openai_key,
-                    http_client=http_client
-                )
+                # Initialize OpenAI client without custom http_client
+                # OpenAI will create its own client, and since we removed proxy vars, it won't use proxies
+                self.openai_client = OpenAI(api_key=openai_key)
                 print("Success: OpenAI client initialized")
             except Exception as e:
                 print(f"Warning: Failed to initialize OpenAI client: {e}")
+                import traceback
+                traceback.print_exc()
                 self.openai_client = None
         else:
             if openai_key:
@@ -76,19 +86,14 @@ class LLMService:
         
         if anthropic_key and len(anthropic_key) > 10:
             try:
-                # Remove proxy vars for Anthropic too
+                # Remove proxy vars before initializing Anthropic client
                 proxy_vars_to_remove = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
                 for var in proxy_vars_to_remove:
                     if var in os.environ:
                         os.environ.pop(var, None)
                 
-                # Create httpx client without proxies
-                http_client = httpx.Client(proxies=None, timeout=60.0)
-                
-                self.anthropic_client = Anthropic(
-                    api_key=anthropic_key,
-                    http_client=http_client
-                )
+                # Initialize Anthropic client without custom http_client
+                self.anthropic_client = Anthropic(api_key=anthropic_key)
                 print("Success: Anthropic client initialized")
             except Exception as e:
                 print(f"Warning: Failed to initialize Anthropic client: {e}")
