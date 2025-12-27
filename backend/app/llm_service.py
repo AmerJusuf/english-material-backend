@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import tiktoken
 from openai import OpenAI
 from anthropic import Anthropic
+import httpx
 from app.config import get_settings
 
 settings = get_settings()
@@ -44,8 +45,20 @@ class LLMService:
         
         if openai_key and len(openai_key) > 10:  # Valid API keys are longer than 10 chars
             try:
-                with no_proxy_env():
-                    self.openai_client = OpenAI(api_key=openai_key)
+                # Remove proxy vars permanently for OpenAI client
+                proxy_vars_to_remove = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+                removed_proxies = {}
+                for var in proxy_vars_to_remove:
+                    if var in os.environ:
+                        removed_proxies[var] = os.environ.pop(var)
+                
+                # Create httpx client without proxies
+                http_client = httpx.Client(proxies=None, timeout=60.0)
+                
+                self.openai_client = OpenAI(
+                    api_key=openai_key,
+                    http_client=http_client
+                )
                 print("Success: OpenAI client initialized")
             except Exception as e:
                 print(f"Warning: Failed to initialize OpenAI client: {e}")
@@ -63,8 +76,20 @@ class LLMService:
         
         if anthropic_key and len(anthropic_key) > 10:
             try:
-                with no_proxy_env():
-                    self.anthropic_client = Anthropic(api_key=anthropic_key)
+                # Remove proxy vars for Anthropic too
+                proxy_vars_to_remove = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+                for var in proxy_vars_to_remove:
+                    if var in os.environ:
+                        os.environ.pop(var, None)
+                
+                # Create httpx client without proxies
+                http_client = httpx.Client(proxies=None, timeout=60.0)
+                
+                self.anthropic_client = Anthropic(
+                    api_key=anthropic_key,
+                    http_client=http_client
+                )
+                print("Success: Anthropic client initialized")
             except Exception as e:
                 print(f"Warning: Failed to initialize Anthropic client: {e}")
                 self.anthropic_client = None
