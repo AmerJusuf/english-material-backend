@@ -5,8 +5,13 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# Only use check_same_thread for SQLite, not PostgreSQL
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
 engine = create_engine(
-    settings.DATABASE_URL, connect_args={"check_same_thread": False}
+    settings.DATABASE_URL, connect_args=connect_args
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
