@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -17,7 +18,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     class Config:
-        env_file = ".env"
+        # Look for .env file in backend directory (parent of app/)
+        env_file = Path(__file__).parent.parent / ".env"
     
     @property
     def cors_origins_list(self) -> list[str]:

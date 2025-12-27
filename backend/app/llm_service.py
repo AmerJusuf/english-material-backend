@@ -36,15 +36,25 @@ class LLMService:
         # Remove quotes if present (common mistake in env vars)
         openai_key = openai_key.strip('"').strip("'")
         
+        # Debug: Check if key is being read (don't print full key for security)
+        if openai_key:
+            print(f"Info: OpenAI API key found (length: {len(openai_key)}, starts with: {openai_key[:7]}...)")
+        else:
+            print("Info: OpenAI API key is empty or not set")
+        
         if openai_key and len(openai_key) > 10:  # Valid API keys are longer than 10 chars
             try:
                 with no_proxy_env():
                     self.openai_client = OpenAI(api_key=openai_key)
+                print("Success: OpenAI client initialized")
             except Exception as e:
                 print(f"Warning: Failed to initialize OpenAI client: {e}")
                 self.openai_client = None
         else:
-            print("Info: OpenAI API key not set or invalid")
+            if openai_key:
+                print(f"Warning: OpenAI API key too short (length: {len(openai_key)})")
+            else:
+                print("Info: OpenAI API key not set or invalid")
         
         # Check Anthropic API key
         anthropic_key = settings.ANTHROPIC_API_KEY.strip() if settings.ANTHROPIC_API_KEY else ''
