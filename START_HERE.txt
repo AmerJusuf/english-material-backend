@@ -1,0 +1,51 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║              ENGLISH CLASS MATERIAL GENERATOR                         ║
+║                     Quick Start Guide                                 ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+🚀 GET STARTED IN 3 STEPS:
+
+1️⃣  RUN SETUP
+   ─────────────
+   Windows:     Double-click "setup.bat"
+   Mac/Linux:   Run "./setup.sh" in terminal
+
+2️⃣  ADD API KEY
+   ─────────────
+   1. Get OpenAI API key: https://platform.openai.com/api-keys
+   2. Open: backend\.env
+   3. Add: OPENAI_API_KEY=sk-your-key-here
+
+3️⃣  START APP
+   ─────────────
+   Terminal 1:  Run "start-backend.bat" (Windows) or "./start-backend.sh" (Mac/Linux)
+   Terminal 2:  Run "start-frontend.bat" (Windows) or "./start-frontend.sh" (Mac/Linux)
+   Browser:     Open http://localhost:5173
+
+📚 DOCUMENTATION:
+
+   WELCOME.md          → Start here! Quick overview
+   README.md           → Complete guide
+   QUICK_START.md      → 5-minute setup
+   FEATURES.md         → What you can do
+   ARCHITECTURE.md     → How it works
+   PROJECT_SUMMARY.md  → Project overview
+
+💡 FIRST TIME?
+
+   Read WELCOME.md for detailed instructions and tips!
+
+🆘 NEED HELP?
+
+   - Check QUICK_START.md for common issues
+   - Read README.md for complete documentation
+   - Visit http://localhost:8000/docs for API docs (after starting backend)
+
+🎉 ENJOY!
+
+   Create amazing English learning materials with AI!
+
+═══════════════════════════════════════════════════════════════════════
+
