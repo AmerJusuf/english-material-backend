@@ -31,20 +31,24 @@ class LLMService:
         self.openai_client = None
         self.anthropic_client = None
         
-        if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip():
+        # Check OpenAI API key
+        openai_key = getattr(settings, 'OPENAI_API_KEY', '').strip() if hasattr(settings, 'OPENAI_API_KEY') else ''
+        if openai_key and len(openai_key) > 0 and not openai_key.startswith('your-'):
             try:
                 with no_proxy_env():
-                    self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY.strip())
+                    self.openai_client = OpenAI(api_key=openai_key)
             except Exception as e:
-                print(f"Warning: Failed to initialize OpenAI client: {e}")
+                # Silently skip if initialization fails - user might not have API key set
                 self.openai_client = None
         
-        if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY.strip():
+        # Check Anthropic API key
+        anthropic_key = getattr(settings, 'ANTHROPIC_API_KEY', '').strip() if hasattr(settings, 'ANTHROPIC_API_KEY') else ''
+        if anthropic_key and len(anthropic_key) > 0 and not anthropic_key.startswith('your-'):
             try:
                 with no_proxy_env():
-                    self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY.strip())
+                    self.anthropic_client = Anthropic(api_key=anthropic_key)
             except Exception as e:
-                print(f"Warning: Failed to initialize Anthropic client: {e}")
+                # Silently skip if initialization fails - user might not have API key set
                 self.anthropic_client = None
     
     def count_tokens(self, text: str, model: str = "gpt-4o-mini") -> int:
