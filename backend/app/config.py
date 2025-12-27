@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
     
+    # Generation password to protect API usage
+    GENERATION_PASSWORD: str = "change-this-password"
+    
     # CORS settings for production
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 

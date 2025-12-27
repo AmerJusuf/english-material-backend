@@ -44,6 +44,7 @@ class MaterialGenerationRequest(BaseModel):
     title: str
     chapters: List[ChapterInput]
     model: str = "gpt-4o-mini"  # gpt-4o-mini, gpt-4, claude-3-5-sonnet, etc.
+    generation_password: str  # Password required to use API for generation
 
 
 class MaterialGenerationResponse(BaseModel):

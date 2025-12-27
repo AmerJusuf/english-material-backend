@@ -12,8 +12,10 @@ from app.schemas import (
 )
 from app.auth import get_current_user
 from app.llm_service import llm_service
+from app.config import get_settings
 
 router = APIRouter(prefix="/materials", tags=["materials"])
+settings = get_settings()
 
 
 @router.post("/generate", response_model=MaterialGenerationResponse)
@@ -22,6 +24,13 @@ def generate_material(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Verify generation password to protect API usage
+    if request.generation_password != settings.GENERATION_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid generation password. Access denied."
+        )
+    
     try:
         # Generate content using LLM
         chapters_data = [{"title": ch.title, "description": ch.description} for ch in request.chapters]

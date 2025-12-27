@@ -22,6 +22,9 @@ export default function Generator() {
   const [editorContent, setEditorContent] = useState('')
   const [tokensUsed, setTokensUsed] = useState(0)
   const [estimatedCost, setEstimatedCost] = useState(0)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [generationPassword, setGenerationPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     if (materialId) {
@@ -73,7 +76,30 @@ export default function Generator() {
     setChapters(updated)
   }
 
-  const generateMaterial = async () => {
+  const handleGenerateClick = () => {
+    // Check if password is stored
+    const storedPassword = localStorage.getItem('generation_password')
+    if (storedPassword) {
+      setGenerationPassword(storedPassword)
+      generateMaterial(storedPassword)
+    } else {
+      setShowPasswordModal(true)
+    }
+  }
+
+  const handlePasswordSubmit = () => {
+    if (!generationPassword.trim()) {
+      setPasswordError('Password is required')
+      return
+    }
+    setPasswordError('')
+    setShowPasswordModal(false)
+    // Store password for future use
+    localStorage.setItem('generation_password', generationPassword)
+    generateMaterial(generationPassword)
+  }
+
+  const generateMaterial = async (password: string) => {
     if (!title.trim()) {
       alert('Please enter a title')
       return
@@ -90,7 +116,8 @@ export default function Generator() {
       const response = await api.post('/materials/generate', {
         title,
         chapters,
-        model
+        model,
+        generation_password: password
       })
 
       setGeneratedContent(response.data.generated_content)
@@ -98,7 +125,15 @@ export default function Generator() {
       setTokensUsed(response.data.tokens_used)
       setEstimatedCost(response.data.estimated_cost)
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to generate material')
+      if (error.response?.status === 403) {
+        // Invalid password - clear stored password and show modal again
+        localStorage.removeItem('generation_password')
+        setGenerationPassword('')
+        setShowPasswordModal(true)
+        setPasswordError('Invalid password. Please try again.')
+      } else {
+        alert(error.response?.data?.detail || 'Failed to generate material')
+      }
     } finally {
       setGenerating(false)
     }
@@ -179,7 +214,7 @@ export default function Generator() {
           </div>
 
           <button
-            onClick={generateMaterial}
+            onClick={handleGenerateClick}
             disabled={generating}
             className="btn btn-primary btn-large"
           >
@@ -214,6 +249,57 @@ export default function Generator() {
             onChange={setEditorContent}
             materialId={materialId}
           />
+        </div>
+      )}
+
+      {/* Generation Password Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Generation Password Required</h2>
+            <p>Enter the generation password to use the AI API for creating materials.</p>
+            
+            <div className="form-group">
+              <label htmlFor="gen-password">Generation Password</label>
+              <input
+                id="gen-password"
+                type="password"
+                value={generationPassword}
+                onChange={(e) => {
+                  setGenerationPassword(e.target.value)
+                  setPasswordError('')
+                }}
+                placeholder="Enter generation password"
+                className={passwordError ? 'input-error' : ''}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePasswordSubmit()
+                  }
+                }}
+                autoFocus
+              />
+              {passwordError && <div className="error-message">{passwordError}</div>}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false)
+                  setGenerationPassword('')
+                  setPasswordError('')
+                }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="btn btn-primary"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
