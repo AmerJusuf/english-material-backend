@@ -1,6 +1,19 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pathlib import Path
+import os
+
+
+# Find .env file - check backend/ directory first, then current directory
+_env_path = Path(__file__).parent.parent / ".env"  # backend/.env
+if not _env_path.exists():
+    _env_path = Path(".env")  # Fallback to current directory
+
+# Debug: Print which .env file is being used
+if _env_path.exists():
+    print(f"Loading .env file from: {_env_path.absolute()}")
+else:
+    print(f"Warning: .env file not found at {_env_path.absolute()}")
 
 
 class Settings(BaseSettings):
@@ -18,8 +31,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     class Config:
-        # Look for .env file in backend directory (parent of app/)
-        env_file = Path(__file__).parent.parent / ".env"
+        # Look for .env file in backend directory
+        env_file = str(_env_path)
+        env_file_encoding = 'utf-8'
     
     @property
     def cors_origins_list(self) -> list[str]:

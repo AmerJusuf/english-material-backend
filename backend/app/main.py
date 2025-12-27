@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import auth, materials, tokens
 from app.config import get_settings
+from app.llm_service import llm_service
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -45,4 +46,22 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/debug/api-keys")
+def debug_api_keys():
+    """Debug endpoint to check if API keys are loaded (for development only)"""
+    import os
+    from pathlib import Path
+    
+    env_path = Path(__file__).parent.parent / ".env"
+    
+    return {
+        "env_file_exists": env_path.exists(),
+        "env_file_path": str(env_path),
+        "openai_key_set": bool(settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY.strip()) > 10),
+        "openai_key_length": len(settings.OPENAI_API_KEY.strip()) if settings.OPENAI_API_KEY else 0,
+        "openai_key_preview": settings.OPENAI_API_KEY[:10] + "..." if settings.OPENAI_API_KEY and len(settings.OPENAI_API_KEY) > 10 else "Not set",
+        "llm_service_openai_initialized": llm_service.openai_client is not None,
+    }
 
