@@ -63,10 +63,10 @@ class TokenUsageResponse(BaseModel):
     model_used: str
     timestamp: datetime
 
-    model_config = {"protected_namespaces": ()}
-
-    class Config:
-        from_attributes = True
+    model_config = {
+        "protected_namespaces": (),
+        "from_attributes": True
+    }
 
 
 class TokenUsageSummary(BaseModel):
