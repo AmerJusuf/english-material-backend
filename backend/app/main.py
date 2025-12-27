@@ -17,15 +17,11 @@ app = FastAPI(
 
 # CORS middleware - supports both development and production
 cors_origins = settings.cors_origins_list
-# Allow Vercel preview deployments
-cors_origins.extend([
-    "https://*.vercel.app",
-])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=cors_origins,  # Specific domains from CORS_ORIGINS env var
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Matches all Vercel domains (preview + production)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
