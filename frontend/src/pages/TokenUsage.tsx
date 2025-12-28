@@ -60,7 +60,7 @@ export default function TokenUsage() {
   }
 
   const chartData = Object.entries(data.usage_by_model).map(([model, usage]) => ({
-    name: model.replace('gpt-', 'GPT-').replace('claude-', 'Claude '),
+    name: model.replace('gpt-', 'GPT-'),
     tokens: usage.total_tokens,
     cost: usage.total_cost,
     requests: usage.request_count

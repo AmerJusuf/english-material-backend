@@ -12,8 +12,9 @@ interface Chapter {
 
 export default function Generator() {
   const [searchParams] = useSearchParams()
-  const materialId = searchParams.get('id')
+  const urlMaterialId = searchParams.get('id')
   
+  const [materialId, setMaterialId] = useState<string | null>(urlMaterialId)
   const [title, setTitle] = useState('')
   const [chapters, setChapters] = useState<Chapter[]>([{ title: '', description: '' }])
   const [model, setModel] = useState('gpt-4o-mini')
@@ -25,12 +26,40 @@ export default function Generator() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [generationPassword, setGenerationPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [modelPricing, setModelPricing] = useState<Record<string, { input: number; output: number }>>({})
 
   useEffect(() => {
-    if (materialId) {
-      loadMaterial(materialId)
+    if (urlMaterialId) {
+      loadMaterial(urlMaterialId)
     }
-  }, [materialId])
+    loadModelPricing()
+  }, [urlMaterialId])
+
+  const loadModelPricing = async () => {
+    try {
+      const response = await api.get('/materials/models/pricing')
+      setModelPricing(response.data)
+    } catch (error) {
+      console.error('Failed to load model pricing:', error)
+    }
+  }
+
+  const getPriceLabel = (modelName: string): string => {
+    const pricing = modelPricing[modelName]
+    if (!pricing) return ''
+    
+    const inputPrice = pricing.input
+    if (inputPrice < 1) return 'Very Cheap'
+    if (inputPrice < 2) return 'Cheap'
+    if (inputPrice < 10) return 'Moderate'
+    return 'Expensive'
+  }
+
+  const formatPricing = (modelName: string): string => {
+    const pricing = modelPricing[modelName]
+    if (!pricing) return ''
+    return `($${pricing.input}/1M input, $${pricing.output}/1M output)`
+  }
 
   const loadMaterial = async (id: string) => {
     try {
@@ -101,7 +130,7 @@ export default function Generator() {
 
   const generateMaterial = async (password: string) => {
     if (!title.trim()) {
-      alert('Please enter a title')
+      alert('Please enter a textbook title')
       return
     }
 
@@ -120,6 +149,8 @@ export default function Generator() {
         generation_password: password
       })
 
+      // Capture the material ID from the response
+      setMaterialId(response.data.material_id.toString())
       setGeneratedContent(response.data.generated_content)
       setEditorContent(formatContentForEditor(response.data.generated_content))
       setTokensUsed(response.data.tokens_used)
@@ -132,7 +163,7 @@ export default function Generator() {
         setShowPasswordModal(true)
         setPasswordError('Invalid password. Please try again.')
       } else {
-        alert(error.response?.data?.detail || 'Failed to generate material')
+        alert(error.response?.data?.detail || 'Failed to generate textbook')
       }
     } finally {
       setGenerating(false)
@@ -143,27 +174,27 @@ export default function Generator() {
     <div className="generator">
       <div className="generator-header">
         <div>
-          <h1>{materialId ? 'Edit Material' : 'Generate New Material'}</h1>
-          <p>Create comprehensive English learning materials with AI</p>
+          <h1>{materialId ? 'Edit Textbook' : 'Generate New Textbook'}</h1>
+          <p>Create professional textbooks with real exercises and activities</p>
         </div>
       </div>
 
       {!generatedContent ? (
         <div className="generator-form card">
           <div className="form-section">
-            <label>Material Title</label>
+            <label>Textbook Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Business English for Professionals"
+              placeholder="e.g., Business English Textbook for Professionals"
               className="input-large"
             />
           </div>
 
           <div className="form-section">
             <div className="section-header">
-              <label>Table of Contents</label>
+              <label>Textbook Chapters</label>
               <button onClick={addChapter} className="btn btn-secondary btn-sm">
                 <Plus size={16} />
                 Add Chapter
@@ -179,13 +210,13 @@ export default function Generator() {
                       type="text"
                       value={chapter.title}
                       onChange={(e) => updateChapter(index, 'title', e.target.value)}
-                      placeholder="Chapter title"
+                      placeholder="Chapter title (e.g., Present Simple Tense, Business Vocabulary)"
                       className="chapter-title-input"
                     />
                     <textarea
                       value={chapter.description}
                       onChange={(e) => updateChapter(index, 'description', e.target.value)}
-                      placeholder="Additional context or description (optional)"
+                      placeholder="Specific focus or level (optional, e.g., 'Beginner level with daily routines focus')"
                       rows={2}
                       className="chapter-description-input"
                     />
@@ -206,11 +237,27 @@ export default function Generator() {
           <div className="form-section">
             <label>AI Model</label>
             <select value={model} onChange={(e) => setModel(e.target.value)} className="select">
-              <option value="gpt-4o-mini">GPT-4o Mini (Fastest, Most Affordable)</option>
-              <option value="gpt-4o">GPT-4o (Balanced)</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo (High Quality)</option>
-              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Premium)</option>
+              <option value="gpt-4o-mini">
+                GPT-4o Mini (Fastest, Most Affordable) - {getPriceLabel('gpt-4o-mini')} {formatPricing('gpt-4o-mini')}
+              </option>
+              <option value="gpt-4o">
+                GPT-4o (Balanced) - {getPriceLabel('gpt-4o')} {formatPricing('gpt-4o')}
+              </option>
+              <option value="gpt-4-turbo">
+                GPT-4 Turbo (High Quality) - {getPriceLabel('gpt-4-turbo')} {formatPricing('gpt-4-turbo')}
+              </option>
+              <option value="gpt-3.5-turbo">
+                GPT-3.5 Turbo (Economical) - {getPriceLabel('gpt-3.5-turbo')} {formatPricing('gpt-3.5-turbo')}
+              </option>
+              <option value="gpt-5">
+                GPT-5 (Latest, Premium) - {getPriceLabel('gpt-5')} {formatPricing('gpt-5')}
+              </option>
             </select>
+            {modelPricing[model] && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Current selection: <strong>{getPriceLabel(model)}</strong> - {formatPricing(model)}
+              </div>
+            )}
           </div>
 
           <button
@@ -221,10 +268,10 @@ export default function Generator() {
             {generating ? (
               <>
                 <Loader size={20} className="spinner" />
-                Generating Material...
+                Generating Textbook...
               </>
             ) : (
-              'Generate Material'
+              'Generate Textbook'
             )}
           </button>
         </div>
@@ -239,7 +286,10 @@ export default function Generator() {
               <span className="stat-label">Estimated Cost:</span>
               <span className="stat-value">${estimatedCost.toFixed(4)}</span>
             </div>
-            <button onClick={() => setGeneratedContent(null)} className="btn btn-secondary">
+            <button onClick={() => {
+              setGeneratedContent(null)
+              setMaterialId(null)
+            }} className="btn btn-secondary">
               Generate New
             </button>
           </div>
@@ -257,7 +307,7 @@ export default function Generator() {
         <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Generation Password Required</h2>
-            <p>Enter the generation password to use the AI API for creating materials.</p>
+            <p>Enter the generation password to use the AI API for creating textbooks.</p>
             
             <div className="form-group">
               <label htmlFor="gen-password">Generation Password</label>

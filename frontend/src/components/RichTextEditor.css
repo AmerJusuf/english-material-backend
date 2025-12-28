@@ -66,6 +66,17 @@
   background: var(--primary-dark);
 }
 
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #ccc;
+}
+
+.toolbar-btn:disabled:hover {
+  background: #ccc;
+  color: white;
+}
+
 .toolbar-divider {
   width: 1px;
   height: 24px;

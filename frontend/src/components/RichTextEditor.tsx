@@ -41,113 +41,65 @@ export default function RichTextEditor({ content, onChange, materialId }: RichTe
     return null
   }
 
-  const downloadAsDocx = () => {
-    // Create a styled HTML document
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body {
-              font-family: 'Calibri', 'Arial', sans-serif;
-              line-height: 1.6;
-              margin: 2cm;
-              font-size: 12pt;
-            }
-            h1 {
-              font-size: 24pt;
-              font-weight: bold;
-              margin-bottom: 12pt;
-              color: #2c3e50;
-            }
-            h2 {
-              font-size: 18pt;
-              font-weight: bold;
-              margin-top: 18pt;
-              margin-bottom: 10pt;
-              color: #34495e;
-            }
-            h3 {
-              font-size: 14pt;
-              font-weight: bold;
-              margin-top: 12pt;
-              margin-bottom: 8pt;
-            }
-            p {
-              margin-bottom: 10pt;
-              text-align: justify;
-            }
-            ul, ol {
-              margin-bottom: 10pt;
-              padding-left: 30pt;
-            }
-            li {
-              margin-bottom: 5pt;
-            }
-            strong {
-              font-weight: bold;
-            }
-            em {
-              font-style: italic;
-            }
-            u {
-              text-decoration: underline;
-            }
-          </style>
-        </head>
-        <body>
-          ${editor.getHTML()}
-        </body>
-      </html>
-    `
+  const downloadAsDocx = async () => {
+    if (!materialId) {
+      alert('Please save the material first before downloading')
+      return
+    }
 
-    // Convert HTML to blob and download
-    const blob = new Blob([htmlContent], { type: 'text/html' })
-    saveAs(blob, 'material.html')
-    
-    // Note: For true .docx conversion, you'd need a library like docx or mammoth
-    // This creates an HTML file that can be opened in Word
-    alert('Downloaded as HTML file. You can open it in Microsoft Word and save as .docx')
+    try {
+      const response = await api.get(`/materials/${materialId}/export/docx`, {
+        responseType: 'blob'
+      })
+      
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      })
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition']
+      let filename = 'textbook.docx'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      saveAs(blob, filename)
+    } catch (error) {
+      console.error('Failed to download DOCX:', error)
+      alert('Failed to download document. Please try again.')
+    }
   }
 
-  const downloadAsPdf = () => {
-    // For PDF, we'll create a printable version
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Print Material</title>
-            <style>
-              body {
-                font-family: 'Calibri', 'Arial', sans-serif;
-                line-height: 1.6;
-                margin: 2cm;
-                font-size: 12pt;
-              }
-              h1 { font-size: 24pt; font-weight: bold; margin-bottom: 12pt; color: #2c3e50; }
-              h2 { font-size: 18pt; font-weight: bold; margin-top: 18pt; margin-bottom: 10pt; color: #34495e; }
-              h3 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 8pt; }
-              p { margin-bottom: 10pt; text-align: justify; }
-              ul, ol { margin-bottom: 10pt; padding-left: 30pt; }
-              li { margin-bottom: 5pt; }
-              @media print {
-                body { margin: 1cm; }
-              }
-            </style>
-          </head>
-          <body>
-            ${editor.getHTML()}
-          </body>
-        </html>
-      `)
-      printWindow.document.close()
-      printWindow.focus()
-      setTimeout(() => {
-        printWindow.print()
-      }, 250)
+  const downloadAsPdf = async () => {
+    if (!materialId) {
+      alert('Please save the material first before downloading')
+      return
+    }
+
+    try {
+      const response = await api.get(`/materials/${materialId}/export/pdf`, {
+        responseType: 'blob'
+      })
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition']
+      let filename = 'textbook.pdf'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      saveAs(blob, filename)
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert('Failed to download PDF. Please try again.')
     }
   }
 
@@ -266,13 +218,23 @@ export default function RichTextEditor({ content, onChange, materialId }: RichTe
               Save
             </button>
           )}
-          <button onClick={downloadAsDocx} className="toolbar-btn btn-download" title="Download as HTML">
+          <button 
+            onClick={downloadAsDocx} 
+            className="toolbar-btn btn-download" 
+            title="Download as Word Document (.docx)"
+            disabled={!materialId}
+          >
             <Download size={18} />
-            HTML
+            DOCX
           </button>
-          <button onClick={downloadAsPdf} className="toolbar-btn btn-download" title="Print/PDF">
+          <button 
+            onClick={downloadAsPdf} 
+            className="toolbar-btn btn-download" 
+            title="Download as PDF"
+            disabled={!materialId}
+          >
             <Download size={18} />
-            Print
+            PDF
           </button>
         </div>
       </div>

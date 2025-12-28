@@ -1,5 +1,6 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
@@ -12,10 +13,21 @@ from app.schemas import (
 )
 from app.auth import get_current_user
 from app.llm_service import llm_service
+from app.document_service import document_exporter
 from app.config import get_settings
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 settings = get_settings()
+
+
+@router.get("/models/pricing")
+def get_model_pricing():
+    """Get pricing information for all available models."""
+    models = ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-5"]
+    pricing_info = {}
+    for model in models:
+        pricing_info[model] = llm_service.get_pricing_info(model)
+    return pricing_info
 
 
 @router.post("/generate", response_model=MaterialGenerationResponse)
@@ -156,4 +168,92 @@ def delete_material(
     db.commit()
     
     return None
+
+
+@router.get("/{material_id}/export/docx")
+def export_material_docx(
+    material_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export material to DOCX format."""
+    material = db.query(Material).filter(
+        Material.id == material_id,
+        Material.user_id == current_user.id
+    ).first()
+    
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Material not found"
+        )
+    
+    if not material.generated_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Material has no generated content to export"
+        )
+    
+    try:
+        content = json.loads(material.generated_content)
+        docx_buffer = document_exporter.export_to_docx(content)
+        
+        # Create safe filename
+        safe_title = "".join(c for c in material.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        filename = f"{safe_title}.docx"
+        
+        return StreamingResponse(
+            docx_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting to DOCX: {str(e)}"
+        )
+
+
+@router.get("/{material_id}/export/pdf")
+def export_material_pdf(
+    material_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export material to PDF format."""
+    material = db.query(Material).filter(
+        Material.id == material_id,
+        Material.user_id == current_user.id
+    ).first()
+    
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Material not found"
+        )
+    
+    if not material.generated_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Material has no generated content to export"
+        )
+    
+    try:
+        content = json.loads(material.generated_content)
+        pdf_buffer = document_exporter.export_to_pdf(content)
+        
+        # Create safe filename
+        safe_title = "".join(c for c in material.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        filename = f"{safe_title}.pdf"
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting to PDF: {str(e)}"
+        )
 

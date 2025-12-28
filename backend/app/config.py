@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-this"
     DATABASE_URL: str = "sqlite:///./app.db"
     OPENAI_API_KEY: str = ""
-    ANTHROPIC_API_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
     
