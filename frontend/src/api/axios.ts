@@ -22,7 +22,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Only redirect if we're not already on login/register page
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        window.location.href = '/login'
+      }
+    }
+    // Handle 404 errors - might be API URL misconfiguration
+    if (error.response?.status === 404 && error.config?.url?.includes('/api/')) {
+      console.error('API endpoint not found. Check VITE_API_URL environment variable.')
     }
     return Promise.reject(error)
   }

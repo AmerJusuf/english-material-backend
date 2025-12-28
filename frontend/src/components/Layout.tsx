@@ -1,10 +1,16 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { BookOpen, FileText, DollarSign, LogOut } from 'lucide-react'
 import './Layout.css'
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="layout">
@@ -37,7 +43,7 @@ export default function Layout() {
               <div className="user-email">{user?.email}</div>
             </div>
           </div>
-          <button onClick={logout} className="logout-btn">
+          <button onClick={handleLogout} className="logout-btn">
             <LogOut size={18} />
           </button>
         </div>

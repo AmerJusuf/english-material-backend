@@ -43,9 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (username: string, password: string) => {
-    const response = await api.post('/auth/login', { username, password })
-    localStorage.setItem('token', response.data.access_token)
-    await fetchUser()
+    try {
+      const response = await api.post('/auth/login', { username, password })
+      localStorage.setItem('token', response.data.access_token)
+      await fetchUser()
+    } catch (error: any) {
+      // Clear token if login fails
+      localStorage.removeItem('token')
+      throw error
+    }
   }
 
   const register = async (email: string, username: string, password: string) => {
@@ -56,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('token')
     setUser(null)
-    window.location.href = '/login'
+    // Navigation is handled by the component calling logout
   }
 
   return (
